@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { addPost } from '../postsSlice'
+import { addNewPost } from '../postsSlice'
 // import { nanoid } from '@reduxjs/toolkit'
 import { selectAllUsers } from '../../users/usersSlice'
 
@@ -8,6 +8,7 @@ const AddPostForm = () => {
     const [title, setTitle] = useState('')
     const [content, setContent] = useState('')
     const [userId, setUserId] = useState('')
+    const [requestStatus, setRequestStatus] = useState('idle')
 
     const dispatch = useDispatch()
 
@@ -24,25 +25,29 @@ const AddPostForm = () => {
         <option
             key={user.id}
             value={user.id}>
-                {user.name}
+            {user.name}
         </option>
     ))
 
     // Save post function
     const savePost = () => {
-        if (title && content) {
-            dispatch(
-                addPost(title, content, userId)
-            )
+        if (canSavePost) {
+            try {
+                setRequestStatus('pending')
+                dispatch(addNewPost({ title, body: content, userId })).unwrap()
 
-            setTitle('')
-            setContent('')
-            setUserId('')
+                setTitle('')
+                setContent('')
+                setUserId('')
+            } catch (err) {
+                console.error('Failed to save the post', err)
+            } finally {
+                setRequestStatus('idle')
+            }
         }
     }
-
     // Create a can save variable that checks if form is filled in ad holds the data to allow save button functionality if true and disable if false
-    const canSavePost = Boolean(title) && Boolean(userId) && Boolean(content)
+    const canSavePost = [title, content, userId].every(Boolean) && requestStatus === 'idle'
 
     return (
         <section>
@@ -57,7 +62,7 @@ const AddPostForm = () => {
                     onChange={onTitleChange}
                 />
                 <label htmlFor="postAuthor">Author:</label>
-                <select 
+                <select
                     id="postAuthor"
                     value={userId}
                     onChange={onAuthorChange}
